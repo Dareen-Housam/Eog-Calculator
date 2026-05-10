@@ -8,7 +8,7 @@ This project demonstrates how traditional machine learning can be integrated wit
 
 ## 🚀 Live Demo
 
-- 🔗 Frontend: http://eog-calculator.netlify.app/
+- 🔗 Frontend: https://eog-calculator.netlify.app/
 
 ---
 
@@ -32,16 +32,45 @@ A built-in dashboard allows:
 ### 🤖 Robust Machine Learning Pipeline
 A fully trained Support Vector Machine (SVM) pipeline that:
 - Filters signal noise
-- Extracts advanced EOG features
+- Extracts advanced EOG features (Wavelets & Morphological)
 - Classifies eye movements into actionable commands
+
+---
+
+# 📂 Repository Structure
+
+```text
+
+HCI_EOG_Calculator/
+│
+├── Machine_Learning/                   # Jupyter notebooks and dataset
+│     ├── data/                         # Raw .txt EOG files
+│     ├── HCI_Project.ipynb             # ML Pipeline, Feature Extraction, SVM Grid Search
+│     └── models/                       # Exported .pkl model files
+│
+├── Backend/                            # FastAPI Python Server
+│     ├── app.py                        # RESTful API endpoints
+│     ├── signal_processor.py           # Signal cleaning & 39-feature DWT extraction
+│     ├── best_model.pkl                # Trained SVM Model
+│     └── requirements.txt              # Python dependencies
+│
+└── Frontend/                           # React UI
+      ├── src/
+      │   ├── components/
+      │   │   ├── CalculatorGrid.jsx    # The spatial 4x4 interactive grid
+      │   │   ├── SimulatorPanel.jsx    # Mock D-pad and File Upload logic
+      │   │   └── CalculatorScreen.jsx  # Display for equations
+      │   ├── App.jsx                   # Main state manager
+      │   └── index.css                 # Tailwind directives
+      ├── package.json
+      └── tailwind.config.js
+```
 
 ---
 
 # 🏗️ System Architecture
 
 The project is divided into three main modules:
-
----
 
 ## 1️⃣ Machine Learning Module (Python / Scikit-Learn)
 
@@ -55,22 +84,14 @@ The project is divided into three main modules:
 - Butterworth Bandpass Filter (`0.5Hz → 20Hz`)
 - Signal Normalization
 
-### 🧠 Feature Extraction Techniques
-- Discrete Wavelet Transform (DWT)
-- Autoregression (AR) Coefficients
-- Morphological Features
-  - Peaks
-  - Area Under Curve (AUC)
+### 🧠 Feature Extraction Techniques (39 Features)
+- Discrete Wavelet Transform (DWT - db1, db2, db4)
+- Morphological Features (Peaks, Area Under Curve)
 
 ### 🎯 Classification
 - Support Vector Machine (SVM)
 - Grid Search Cross Validation
-- Multi-class classification for:
-  - Up
-  - Down
-  - Left
-  - Right
-  - Blink
+- Multi-class classification for: Up, Down, Left, Right, Blink
 
 ---
 
@@ -79,7 +100,8 @@ The project is divided into three main modules:
 ### 📌 Responsibilities
 - Real-time UI interaction
 - Spatial navigation system
-- Simulation tools
+- API communication
+
 
 ### 🔄 State Machine Flow
 
@@ -95,7 +117,6 @@ BUTTON_ACTIVE
 - Responsive mobile-first design
 - High-contrast glowing indicators
 - Smooth transitions and animations
-- Spatial navigation feedback system
 
 ---
 
@@ -103,52 +124,69 @@ BUTTON_ACTIVE
 
 ### 📌 Responsibilities
 - Real-time inference server
-- Communication bridge between ML model and frontend
+- Communication bridge between the ML model and the React frontend
 
-### ⚙️ Planned Features
-- Load trained `.pkl` SVM models
-- Process incoming EOG signal chunks
-- Return predicted eye movement commands to frontend
+### ⚙️ Features
+- **Live Inference:** Loads the trained `best_model.pkl` SVM model on startup.
+- **Dynamic Feature Extraction:** Cleans raw signal uploads and processes them through the 39-feature DWT/Morphological pipeline.
+- **RESTful Endpoints:** Provides a `/predict` POST endpoint to instantly classify signals and return actionable movement commands.
 
 ---
 
 # 🚀 How to Run the Project
 
-## ▶️ Running the Frontend Simulation
+## ⚙️ Running the FastAPI Backend (Required for File Uploads)
 
-The frontend currently supports a complete simulation mode and does **not** require the backend to be active.
+To process real `.txt` signal files locally, the Python backend must be running.
+
+### 1️⃣ Navigate to Backend Directory
+```bash
+cd Backend
+```
+
+### 2️⃣ Create and Activate a Virtual Environment
+```bash
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3️⃣ Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 4️⃣ Start the Server
+```bash
+uvicorn app:app --reload --port 5000
+```
+*The API will now be listening on `http://localhost:5000`, and you can test endpoints directly at `http://localhost:5000/docs`.*
+
+---
+
+## ▶️ Running the Frontend Interface
 
 ### 1️⃣ Navigate to Frontend Directory
-
 ```bash
 cd Frontend
 ```
 
 ### 2️⃣ Install Dependencies
-
 ```bash
 npm install
 ```
 
 ### 3️⃣ Start Development Server
-
 ```bash
 npm run dev
 ```
 
 ### 4️⃣ Open in Browser
-
-Visit:
-
-```text
-http://localhost:5173
-```
-
-Use:
-- The on-screen D-Pad
-- Or upload `.txt` signal files
-
-to simulate eye movement interactions.
+Visit `http://localhost:5173`. You can now use the D-Pad or upload `.txt` signal files to interact with the calculator!
 
 ---
 
@@ -179,16 +217,12 @@ Frontend Interaction
 - Vite
 - Tailwind CSS
 
-## Machine Learning
+## Machine Learning & Backend
 - Python
-- NumPy
-- SciPy
+- FastAPI
+- NumPy / SciPy
 - Scikit-Learn
 - PyWavelets
-
-## Backend
-- FastAPI
-- REST APIs
 
 ---
 
