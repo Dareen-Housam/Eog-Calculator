@@ -27,14 +27,22 @@ export default function App() {
         const op = parts[2];
         const n2 = parseFloat(parts[3]);
 
+        // Standard operations
         if (op === "+") return String(n1 + n2);
         if (op === "-") return String(n1 - n2);
         if (op === "*") return String(n1 * n2);
-        if (op === "/") return String(Math.round((n1 / n2) * 100) / 100);
+
+        // Division by zero check
+        if (op === "/") {
+          if (n2 === 0) throw new Error("Division by zero");
+          return String(Math.round((n1 / n2) * 100) / 100);
+        }
       }
-    } catch {
-      // Intentionally empty for ESLint
+    } catch (error) {
+      console.error("Calculator Error:", error.message);
+      return "Error";
     }
+
     return currentEq;
   };
 
@@ -72,7 +80,6 @@ export default function App() {
     <div className="min-h-screen bg-slate-900 flex flex-col lg:flex-row items-center justify-center p-4 lg:p-8 gap-8 lg:gap-16">
       {/* Left Side: Logo & Simulation Controls */}
       <div className="w-full max-w-xs flex flex-col items-center">
-        {/* --- ADDED THE LOGO HERE --- */}
         <div className="flex flex-col items-center justify-center mb-8">
           <svg
             xmlns="http://www.w3.org/2000/svg"

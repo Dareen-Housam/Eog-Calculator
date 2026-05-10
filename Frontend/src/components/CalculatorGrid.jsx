@@ -22,7 +22,6 @@ export default function CalculatorGrid({
 
     return (
       <div className="flex flex-col gap-2 transition-all duration-300">
-        {/* Direction Label */}
         <div
           className={`text-center text-[10px] font-bold uppercase tracking-widest transition-all ${labelClass}`}
         >
@@ -32,7 +31,6 @@ export default function CalculatorGrid({
         <div
           className={`grid grid-cols-2 gap-2 lg:gap-3 p-2 lg:p-4 rounded-2xl relative transition-all duration-300 ${quadClass}`}
         >
-          {/* Inner Glow Pointer */}
           {isActive && step === "QUADRANT" && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-blue-500 rounded-full shadow-[0_0_20px_rgba(59,130,246,1)] animate-ping" />
           )}
@@ -60,7 +58,6 @@ export default function CalculatorGrid({
 
   return (
     <div className="grid grid-cols-2 gap-x-4 gap-y-6 relative">
-      {/* Center Focus Dot for Idle State */}
       {step === "IDLE" && (
         <div className="absolute top-[55%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-yellow-400 rounded-full shadow-[0_0_25px_rgba(250,204,21,1)] animate-pulse z-50 border-4 border-white pointer-events-none" />
       )}
