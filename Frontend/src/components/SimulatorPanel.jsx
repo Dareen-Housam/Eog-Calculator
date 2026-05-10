@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 export default function SimulatorPanel({ onSimulateMove }) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState("");
   const [status, setStatus] = useState({ text: "", type: "" });
+
+  const latestMoveRef = useRef(onSimulateMove);
+  useEffect(() => {
+    latestMoveRef.current = onSimulateMove;
+  }, [onSimulateMove]);
 
   const btnStyle =
     "bg-slate-700 hover:bg-blue-500 active:bg-blue-600 active:scale-95 text-white font-bold p-3 lg:p-4 rounded-xl shadow-[0_4px_0_rgb(51,65,85)] hover:shadow-[0_4px_0_rgb(37,99,235)] transition-all flex items-center justify-center text-xs lg:text-base cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
@@ -22,7 +27,7 @@ export default function SimulatorPanel({ onSimulateMove }) {
 
     setFileName(file.name);
     setIsProcessing(true);
-    setStatus({ text: "", type: "" });
+    setStatus({ text: "Uploading and analyzing...", type: "" });
 
     const formData = new FormData();
     formData.append("file", file);
@@ -38,23 +43,33 @@ export default function SimulatorPanel({ onSimulateMove }) {
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        // Clean the string from Python before passing it to App.jsx
-        const exactMove = formatMove(data.prediction);
+      if (response.ok && data.success && data.predictions) {
+        setStatus({
+          text: `Found ${data.predictions.length} movements! Executing...`,
+          type: "success",
+        });
 
-        if (["Up", "Down", "Left", "Right", "Blink"].includes(exactMove)) {
-          onSimulateMove(exactMove);
-          setStatus({
-            text: `Detected: ${exactMove.toUpperCase()}`,
-            type: "success",
-          });
-        } else {
-          setStatus({
-            text: `Unrecognized API output: ${data.prediction}`,
-            type: "error",
-          });
+        for (let i = 0; i < data.predictions.length; i++) {
+          const exactMove = formatMove(data.predictions[i]);
+
+          if (["Up", "Down", "Left", "Right", "Blink"].includes(exactMove)) {
+            latestMoveRef.current(exactMove);
+
+            setStatus({
+              text: `Executed [${i + 1}/${data.predictions.length}]: ${exactMove.toUpperCase()}`,
+              type: "success",
+            });
+          } else {
+            setStatus({
+              text: `Skipped unrecognized move: ${exactMove}`,
+              type: "error",
+            });
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 1200));
         }
 
+        setStatus({ text: "Sequence Complete!", type: "success" });
         setTimeout(() => setStatus({ text: "", type: "" }), 3000);
       } else {
         setStatus({
@@ -72,12 +87,9 @@ export default function SimulatorPanel({ onSimulateMove }) {
   };
 
   const handleManualMove = (e, move) => {
-    e.preventDefault(); // Prevents button from behaving like a form submit
-
-    // Show brief feedback so you know the button click registered
+    e.preventDefault();
     setStatus({ text: `Simulated: ${move.toUpperCase()}`, type: "success" });
     onSimulateMove(move);
-
     setTimeout(() => setStatus({ text: "", type: "" }), 1500);
   };
 
@@ -152,9 +164,8 @@ export default function SimulatorPanel({ onSimulateMove }) {
                   />
                 </svg>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                  Upload Signal (.txt)
+                  Upload Signal (.txt, .xlsx)
                 </p>
-
                 {fileName && !status.text.includes("Server") && (
                   <p className="text-[10px] text-slate-500 mt-1 truncate w-48">
                     Last: {fileName}
@@ -166,7 +177,7 @@ export default function SimulatorPanel({ onSimulateMove }) {
           <input
             type="file"
             className="hidden"
-            accept=".txt"
+            accept=".txt, .xlsx"
             onChange={handleFileUpload}
             disabled={isProcessing}
           />

@@ -15,22 +15,30 @@ This project demonstrates how traditional machine learning can be integrated wit
 ## ✨ Features
 
 ### 🎯 Two-Step Spatial Navigation
+
 A custom 16-button calculator UI designed around a strict HCI constraint:
 users can select any number or operation using exactly **two eye movements and one blink**.
 
 ### 🌟 Glowing Focus Indicator
+
 A pulsing visual cursor provides real-time feedback, tracking the user's spatial focus across the 4x4 calculator grid to reduce cognitive load.
 
 ### ⚡ Auto-Evaluating Logic
+
 The calculator instantly computes equations (e.g., `7 + 2`) as soon as the second digit is confirmed, minimizing required user input.
 
 ### 🧪 Signal Simulation Mode
+
 A built-in dashboard allows:
+
 - Manual simulation using a D-Pad
 - Uploading pre-recorded `.txt` EOG signal files directly in the browser
+- Batch testing support via `.xlsx` Excel sheets for sequential movement execution
 
 ### 🤖 Robust Machine Learning Pipeline
+
 A fully trained Support Vector Machine (SVM) pipeline that:
+
 - Filters signal noise
 - Extracts advanced EOG features (Wavelets & Morphological)
 - Classifies eye movements into actionable commands
@@ -50,7 +58,7 @@ HCI_EOG_Calculator/
 │
 ├── Backend/                            # FastAPI Python Server
 │     ├── app.py                        # RESTful API endpoints
-│     ├── signal_processor.py           # Signal cleaning & 39-feature DWT extraction
+│     ├── signal_processor.py           # Signal cleaning & 15-feature DWT extraction
 │     ├── best_model.pkl                # Trained SVM Model
 │     └── requirements.txt              # Python dependencies
 │
@@ -75,20 +83,24 @@ The project is divided into three main modules:
 ## 1️⃣ Machine Learning Module (Python / Scikit-Learn)
 
 ### 📌 Responsibilities
+
 - EOG signal preprocessing
 - Feature extraction
 - Eye movement classification
 
 ### ⚙️ Preprocessing Pipeline
+
 - DC Offset Removal
 - Butterworth Bandpass Filter (`0.5Hz → 20Hz`)
 - Signal Normalization
 
-### 🧠 Feature Extraction Techniques (39 Features)
-- Discrete Wavelet Transform (DWT - db1, db2, db4)
-- Morphological Features (Peaks, Area Under Curve)
+### 🧠 Feature Extraction Techniques (15 Features)
+
+- Discrete Wavelet Transform (DWT - db1)
+- Morphological Features (Maximum Peak, Minimum Peak, Area Under Curve)
 
 ### 🎯 Classification
+
 - Support Vector Machine (SVM)
 - Grid Search Cross Validation
 - Multi-class classification for: Up, Down, Left, Right, Blink
@@ -98,10 +110,10 @@ The project is divided into three main modules:
 ## 2️⃣ Frontend Interface (React / Vite / Tailwind CSS)
 
 ### 📌 Responsibilities
+
 - Real-time UI interaction
 - Spatial navigation system
 - API communication
-
 
 ### 🔄 State Machine Flow
 
@@ -114,6 +126,7 @@ BUTTON_ACTIVE
 ```
 
 ### 🎨 UI / UX Features
+
 - Responsive mobile-first design
 - High-contrast glowing indicators
 - Smooth transitions and animations
@@ -123,12 +136,15 @@ BUTTON_ACTIVE
 ## 3️⃣ Backend API (FastAPI)
 
 ### 📌 Responsibilities
+
 - Real-time inference server
 - Communication bridge between the ML model and the React frontend
 
 ### ⚙️ Features
-- **Live Inference:** Loads the trained `best_model.pkl` SVM model on startup.
-- **Dynamic Feature Extraction:** Cleans raw signal uploads and processes them through the 39-feature DWT/Morphological pipeline.
+
+- **Live Inference:** Loads the trained `final_directional_model.pkl` SVM model on startup.
+- **Dynamic Feature Extraction:** Cleans raw signal uploads and processes them through the optimized 15-feature DWT/Morphological pipeline.
+- **Continuous & Batch Processing:** Includes peak-to-peak amplitude thresholding to isolate valid eye movements from background noise, supporting both continuous `.txt` streams and batch `.xlsx` columns.
 - **RESTful Endpoints:** Provides a `/predict` POST endpoint to instantly classify signals and return actionable movement commands.
 
 ---
@@ -140,11 +156,13 @@ BUTTON_ACTIVE
 To process real `.txt` signal files locally, the Python backend must be running.
 
 ### 1️⃣ Navigate to Backend Directory
+
 ```bash
 cd Backend
 ```
 
 ### 2️⃣ Create and Activate a Virtual Environment
+
 ```bash
 # Windows
 python -m venv venv
@@ -156,36 +174,43 @@ source venv/bin/activate
 ```
 
 ### 3️⃣ Install Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ### 4️⃣ Start the Server
+
 ```bash
 uvicorn app:app --reload --port 5000
 ```
-*The API will now be listening on `http://localhost:5000`, and you can test endpoints directly at `http://localhost:5000/docs`.*
+
+_The API will now be listening on `http://localhost:5000`, and you can test endpoints directly at `http://localhost:5000/docs`._
 
 ---
 
 ## ▶️ Running the Frontend Interface
 
 ### 1️⃣ Navigate to Frontend Directory
+
 ```bash
 cd Frontend
 ```
 
 ### 2️⃣ Install Dependencies
+
 ```bash
 npm install
 ```
 
 ### 3️⃣ Start Development Server
+
 ```bash
 npm run dev
 ```
 
 ### 4️⃣ Open in Browser
+
 Visit `http://localhost:5173`. You can now use the D-Pad or upload `.txt` signal files to interact with the calculator!
 
 ---
@@ -213,16 +238,19 @@ Frontend Interaction
 # 🛠️ Tech Stack
 
 ## Frontend
+
 - React
 - Vite
 - Tailwind CSS
 
 ## Machine Learning & Backend
+
 - Python
 - FastAPI
-- NumPy / SciPy
+- NumPy / Pandas / SciPy
 - Scikit-Learn
 - PyWavelets
+- OpenPyXL (for Excel parsing)
 
 ---
 

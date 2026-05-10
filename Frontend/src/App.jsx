@@ -16,6 +16,8 @@ export default function App() {
   const [activeQuadrant, setActiveQuadrant] = useState(null);
   const [highlightedButton, setHighlightedButton] = useState(null);
 
+  const [isResult, setIsResult] = useState(false);
+
   const autoCalculate = (currentEq) => {
     try {
       const parseable = currentEq.replace("x", "*");
@@ -51,14 +53,30 @@ export default function App() {
       if (step === "BUTTON" && highlightedButton) {
         if (highlightedButton === "C") {
           setEquation("");
+          setIsResult(false); // Reset flag on clear
         } else if (highlightedButton === "E") {
           setEquation("EXIT");
+          setIsResult(false); // Reset flag on exit
         } else {
+          let baseEq = equation;
+
+          if (isResult) {
+            const isOperator = ["+", "-", "x", "/"].includes(highlightedButton);
+            baseEq = isOperator ? equation : "";
+            setIsResult(false);
+          }
+
           const newEq =
-            equation === "EXIT" || equation === "0" || equation === "Error"
+            baseEq === "EXIT" || baseEq === "0" || baseEq === "Error"
               ? highlightedButton
-              : equation + highlightedButton;
-          setEquation(autoCalculate(newEq));
+              : baseEq + highlightedButton;
+
+          const calculatedEq = autoCalculate(newEq);
+          setEquation(calculatedEq);
+
+          if (calculatedEq !== newEq && calculatedEq !== "Error") {
+            setIsResult(true);
+          }
         }
       }
       setStep("IDLE");
@@ -76,6 +94,7 @@ export default function App() {
       setStep("BUTTON");
     }
   };
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col lg:flex-row items-center justify-center p-4 lg:p-8 gap-8 lg:gap-16">
       {/* Left Side: Logo & Simulation Controls */}
@@ -91,11 +110,8 @@ export default function App() {
             strokeLinejoin="round"
             className="w-12 h-12 text-blue-400 drop-shadow-[0_0_10px_rgba(96,165,250,0.8)]"
           >
-            {/* The Outer Eye Shape */}
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-            {/* The Iris/Pupil */}
             <circle cx="12" cy="12" r="4" />
-            {/* The Math Symbol (Plus) inside the pupil */}
             <path d="M12 10v4M10 12h4" />
           </svg>
           <h1 className="text-white text-2xl font-black mt-3 tracking-widest uppercase">

@@ -2,6 +2,8 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
+import pandas as pd
+import io
 from signal_processor import extract_features
 
 app = FastAPI(title="EOG Calculator API")
@@ -29,37 +31,65 @@ async def health_check():
 async def predict_movement(file: UploadFile = File(...)):
     if not model:
         raise HTTPException(status_code=500, detail="Machine Learning model is not loaded.")
-    if not file.filename.endswith('.txt'):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt file.")
+    
+    filename = file.filename.lower()
+    if not (filename.endswith('.txt') or filename.endswith('.xlsx')):
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a .txt or .xlsx file.")
 
     try:
         content = await file.read()
-        decoded_content = content.decode('utf-8')
-        raw_signal = [float(line.strip()) for line in decoded_content.split('\n') if line.strip()]
-        raw_signal_np = np.array(raw_signal)
-
-        features = extract_features(raw_signal_np)
         
-        # 1. Get the integer prediction from the SVM (0, 1, 2, 3, or 4)
-        prediction_number = int(model.predict(features)[0])
-        
-        # 2. Translate the number to the exact word React expects
         movement_map = {
-            0: 'Up',
-            1: 'Down',
-            2: 'Right',
-            3: 'Left',
+            0: 'Left',
+            1: 'Right',
+            2: 'Up',
+            3: 'Down',
             4: 'Blink'
         }
         
-        prediction_word = movement_map.get(prediction_number, "Unknown")
-        
+        detected_movements = []
+
+        if filename.endswith('.xlsx'):
+            df = pd.read_excel(io.BytesIO(content), header=None)
+            for col_idx in range(df.shape[1]):
+                col_data = df.iloc[:, col_idx].dropna().values.astype(float)
+                if len(col_data) < 50:
+                    continue
+                    
+                features = extract_features(col_data)
+                prediction_number = int(model.predict(features)[0])
+                detected_movements.append(movement_map.get(prediction_number, "Unknown"))
+
+        elif filename.endswith('.txt'):
+            decoded_content = content.decode('utf-8')
+            raw_signal = [float(line.strip()) for line in decoded_content.split('\n') if line.strip()]
+            raw_signal_np = np.array(raw_signal)
+
+            chunk_size = 251 
+            
+            for i in range(0, len(raw_signal_np), chunk_size):
+                chunk = raw_signal_np[i : i + chunk_size]
+                
+                if len(chunk) < 200:
+                    continue
+                
+                amplitude = np.max(chunk) - np.min(chunk)
+                if amplitude < 10.0:
+                    continue 
+
+                features = extract_features(chunk)
+                prediction_number = int(model.predict(features)[0])
+                detected_movements.append(movement_map.get(prediction_number, "Unknown"))
+
+        if not detected_movements:
+            return {"success": False, "detail": "No clear eye movements detected (signal too flat)."}
+
         return {
             "success": True,
-            "prediction": prediction_word
+            "predictions": detected_movements
         }
 
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=f"Data parsing error: {str(ve)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Server error during prediction: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
