@@ -55,7 +55,7 @@ export default function App() {
           setEquation("EXIT");
         } else {
           const newEq =
-            equation === "EXIT" || equation === "0"
+            equation === "EXIT" || equation === "0" || equation === "Error"
               ? highlightedButton
               : equation + highlightedButton;
           setEquation(autoCalculate(newEq));

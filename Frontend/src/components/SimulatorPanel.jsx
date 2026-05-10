@@ -2,15 +2,27 @@ import { useState } from "react";
 
 export default function SimulatorPanel({ onSimulateMove }) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [status, setStatus] = useState({ text: "", type: "" });
 
   const btnStyle =
     "bg-slate-700 hover:bg-blue-500 active:bg-blue-600 active:scale-95 text-white font-bold p-3 lg:p-4 rounded-xl shadow-[0_4px_0_rgb(51,65,85)] hover:shadow-[0_4px_0_rgb(37,99,235)] transition-all flex items-center justify-center text-xs lg:text-base cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
+
+  const formatMove = (move) => {
+    if (!move) return "";
+    const clean = String(move)
+      .replace(/[^a-zA-Z]/g, "")
+      .toLowerCase();
+    return clean.charAt(0).toUpperCase() + clean.slice(1);
+  };
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    setFileName(file.name);
     setIsProcessing(true);
+    setStatus({ text: "", type: "" });
 
     const formData = new FormData();
     formData.append("file", file);
@@ -27,34 +39,101 @@ export default function SimulatorPanel({ onSimulateMove }) {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        onSimulateMove(data.prediction);
+        // Clean the string from Python before passing it to App.jsx
+        const exactMove = formatMove(data.prediction);
+
+        if (["Up", "Down", "Left", "Right", "Blink"].includes(exactMove)) {
+          onSimulateMove(exactMove);
+          setStatus({
+            text: `Detected: ${exactMove.toUpperCase()}`,
+            type: "success",
+          });
+        } else {
+          setStatus({
+            text: `Unrecognized API output: ${data.prediction}`,
+            type: "error",
+          });
+        }
+
+        setTimeout(() => setStatus({ text: "", type: "" }), 3000);
       } else {
-        alert(`Backend Error: ${data.detail || "Could not process signal"}`);
+        setStatus({
+          text: data.detail || "Could not process signal.",
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("API Error:", error);
-      alert("Failed to connect to the Python backend. Is FastAPI running?");
+      setStatus({ text: "Server offline. Check Hugging Face.", type: "error" });
     } finally {
       setIsProcessing(false);
       event.target.value = "";
     }
   };
 
+  const handleManualMove = (e, move) => {
+    e.preventDefault(); // Prevents button from behaving like a form submit
+
+    // Show brief feedback so you know the button click registered
+    setStatus({ text: `Simulated: ${move.toUpperCase()}`, type: "success" });
+    onSimulateMove(move);
+
+    setTimeout(() => setStatus({ text: "", type: "" }), 1500);
+  };
+
   return (
     <div className="bg-slate-800 border border-slate-700 p-6 lg:p-8 rounded-3xl shadow-2xl w-full flex flex-col items-center">
-      <h2 className="text-sm lg:text-lg font-black mb-6 text-center text-blue-400 uppercase tracking-[0.3em]">
+      <h2 className="text-sm lg:text-lg font-black mb-4 text-center text-blue-400 uppercase tracking-[0.3em]">
         EOG Input
       </h2>
 
+      {status.text && (
+        <div
+          className={`w-full mb-4 p-3 rounded-lg text-xs lg:text-sm font-bold text-center animate-fade-in border ${
+            status.type === "error"
+              ? "bg-red-500/10 text-red-400 border-red-500/30"
+              : "bg-green-500/10 text-green-400 border-green-500/30"
+          }`}
+        >
+          {status.text}
+        </div>
+      )}
+
       <div className="w-full mb-8">
         <label
-          className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer transition-all ${isProcessing ? "border-yellow-400 bg-yellow-400/10" : "border-slate-500 hover:border-blue-400 hover:bg-slate-700"}`}
+          className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl transition-all ${
+            isProcessing
+              ? "border-yellow-400 bg-yellow-400/10 cursor-wait"
+              : "border-slate-500 hover:border-blue-400 hover:bg-slate-700 cursor-pointer"
+          }`}
         >
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+          <div className="flex flex-col items-center justify-center pt-5 pb-6 px-2 text-center">
             {isProcessing ? (
-              <p className="text-sm font-bold text-yellow-400 animate-pulse">
-                Running SVM Model...
-              </p>
+              <>
+                <svg
+                  className="animate-spin h-6 w-6 text-yellow-400 mb-2"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                <p className="text-xs font-bold text-yellow-400 tracking-wider truncate w-48">
+                  Processing: {fileName}
+                </p>
+              </>
             ) : (
               <>
                 <svg
@@ -75,6 +154,12 @@ export default function SimulatorPanel({ onSimulateMove }) {
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
                   Upload Signal (.txt)
                 </p>
+
+                {fileName && !status.text.includes("Server") && (
+                  <p className="text-[10px] text-slate-500 mt-1 truncate w-48">
+                    Last: {fileName}
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -88,11 +173,11 @@ export default function SimulatorPanel({ onSimulateMove }) {
         </label>
       </div>
 
-      {/* Buttons remain exactly the same */}
       <div className="grid grid-cols-3 gap-2 lg:gap-3 w-full">
         <div />
         <button
-          onClick={() => onSimulateMove("Up")}
+          type="button"
+          onClick={(e) => handleManualMove(e, "Up")}
           className={btnStyle}
           disabled={isProcessing}
         >
@@ -100,21 +185,24 @@ export default function SimulatorPanel({ onSimulateMove }) {
         </button>
         <div />
         <button
-          onClick={() => onSimulateMove("Left")}
+          type="button"
+          onClick={(e) => handleManualMove(e, "Left")}
           className={btnStyle}
           disabled={isProcessing}
         >
           LEFT
         </button>
         <button
-          onClick={() => onSimulateMove("Blink")}
+          type="button"
+          onClick={(e) => handleManualMove(e, "Blink")}
           disabled={isProcessing}
           className="bg-yellow-400 hover:bg-yellow-300 active:bg-yellow-500 disabled:opacity-50 text-slate-900 rounded-full w-full h-full flex items-center justify-center font-black shadow-[0_0_20px_rgba(250,204,21,0.5)] active:scale-95 transition-all aspect-square border-4 border-yellow-200 text-[10px] lg:text-sm cursor-pointer disabled:cursor-not-allowed"
         >
           BLINK
         </button>
         <button
-          onClick={() => onSimulateMove("Right")}
+          type="button"
+          onClick={(e) => handleManualMove(e, "Right")}
           className={btnStyle}
           disabled={isProcessing}
         >
@@ -122,7 +210,8 @@ export default function SimulatorPanel({ onSimulateMove }) {
         </button>
         <div />
         <button
-          onClick={() => onSimulateMove("Down")}
+          type="button"
+          onClick={(e) => handleManualMove(e, "Down")}
           className={btnStyle}
           disabled={isProcessing}
         >
